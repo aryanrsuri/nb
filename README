@@ -19,8 +19,7 @@ in reference to F.  This is the `path`.
 
 When writing text in M, a user can specify a _link_ to another file N by using its path in reference to M.
 LINK == [[path]]. Using the earlier example, a file at path M, can link to M->M'' as [[F'/F''/M'']] and M'' can 
-back-link M''->M as [[../../M]] where `..` implies walking backwards up a folder towards F. Another simple example 
-is M and M_1 which exist both under F. M -> M_1 = [[M_1]].
+back-link M''->M as [[../../M]] where `..` implies walking backwards up a folder towards F. Another simple example is M and M_1 which exist both under F. M -> M_1 = [[M_1]].
 
 Requirements
 
