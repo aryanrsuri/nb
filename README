@@ -25,14 +25,14 @@ find and acess the linked note, view all links, and create a new link.
 References
 
 * https://notes.andymatuschak.org/, what gave me this idea.
-* [Zettelkasten](https://en.wikipedia.org/wiki/Zettelkasten), the original idea of "webbed" or directed stricture of note-taking.
-* [zk](https://github.com/zk-org/zk), a similar but not same implementation of some of the specification.
+* [Zettelkasten](https://en.wikipedia.org/wiki/Zettelkasten), the original idea of directed structure in note-taking.
+* [zk](https://github.com/zk-org/zk), a similar implementation.
 
 Usage 
 
   Build 
 
-You must have go>1.22 installed. Then you can build `nb` and add it to your path. 
+Build with go version >1.27 and add to your path. 
 `nb init` will generate a `.nb` with a config (containing only nvim as editor default).
 
   Neovim
