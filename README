@@ -1,0 +1,51 @@
+nb - nota bene 
+
+Build, installation, notebook initialization, and Neovim usage: see USAGE.md.
+
+Goal 
+
+Implement a small application and integration that allows me to build a note-taking system that is:
+  * atomic
+  * concept-based
+  * highly linkable
+  * portable to other devices
+  * terminal-first
+
+Specification
+
+There is a root folder F, which can contain markdown files M and other folders F creating a file tree `F = {M,F}`
+such that a folder F'' in a folder F' in the root folder F containing markdown file M'' is co-located as F'/F''/M''
+in reference to F. This is called a path, and note the root folder is omitted in this syntax, and the descriptors 
+are the labels of these things without the file extension (i.e. note-1 rather than note-1.md).
+
+When writing text in M, a user can specify a _link_ to another file N by using its path in reference to M.
+LINK == [[path]]. Using the earlier example, a file at path M, can link to M->M'' as [[F'/F''/M'']] and M'' can 
+back-link M''->M as [[../../M]] where `..` implies walking backwards up a folder towards F. Another simple example 
+is M and M_1 which exist both under F. M -> M_1 = [[M_1]].
+
+Requirements
+
+The application is starting with a CLI, that can index and map all links within F, and provide a trivial way to 
+find and acess the linked note, view all links, and create a new link.
+
+The application should work intimitaley with neovim, the editor of chose, with specific keymaps related to the 
+requirements, as well as usage of telescope/fzf, already installed (if not).
+
+References
+
+* https://notes.andymatuschak.org/, what gave me this idea.
+* Zettelkasten, the original idea of "webbed" or directed stricture of note-taking.
+* zk, a similar but not same implementation of some of the specification.
+
+Usage 
+
+```
+nb list theory                    # Find notes by path substring
+nb index                          # Whole graph as JSON
+nb links                          # All active links
+nb links concepts/note            # Outgoing links
+nb backlinks concepts/note        # Incoming links
+nb resolve concepts/note ../other # Absolute target of a source-relative link
+nb open concepts/note             # Open an existing note
+nb link concepts/note other       # Print [[../other]] for insertion
+```
