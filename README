@@ -56,6 +56,7 @@ The CLI offers a simple set of tools to work with.
 nb init                           # Build an `.nb` file as root
 nb list theory                    # Find notes by path substring
 nb index                          # Whole graph as JSON
+nb serve                          # Browse notes at http://127.0.0.1:8080
 nb links                          # All active links
 nb links concepts/note            # Outgoing links
 nb backlinks concepts/note        # Incoming links
@@ -63,6 +64,25 @@ nb resolve concepts/note ../other # Absolute target of a source-relative link
 nb open concepts/note             # Open an existing note
 nb link concepts/note other       # Print [[../other]] for insertion
 ```
+
+  Browser
+
+Run `nb serve` inside an initialized notebook, then open the printed local URL
+in your browser. Use `nb serve 8081` to choose another port. Ctrl-C stops the
+server. It binds only to your computer's loopback address.
+
+Find notes in the index; following a link opens the target beside the current
+note. Backlinks show which notes point here. The map gives an overview of the
+connections. The browser URL remembers the open notes, including Back/Forward.
+
+Notes are read from disk when opened. After saving edits, use Refresh in the
+browser to update the index, connections, and open notes. No rebuild or server
+restart is needed for note changes.
+This first version reads `.md` notes and supports a small set of Markdown
+formatting: headings, paragraphs, lists, quotes, and code. Missing wiki-link
+targets stay plain text. No UI framework or JavaScript dependencies are needed;
+`go build` embeds the HTML, CSS, and JavaScript in the executable. The server
+uses Go's standard net/http package; there is no generated site or database.
 
 Footnotes 
 

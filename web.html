@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+.shell { display: flex; height: 100dvh; }
+.sidebar { flex: 0 0 14rem; padding: 1rem; overflow: auto; border-right: 1px solid #ccc; }
+.tabs { display: flex; gap: .25rem; margin: 1rem 0; }
+.search { width: 100%; }
+.index { padding-left: 1rem; }
+.index li { margin: .5rem 0; }
+.index small { display: block; }
+.index a[aria-current] { font-weight: bold; }
+main { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; }
+#sidebar-toggle { align-self: flex-start; margin: .5rem; }
+.stack { display: flex; flex: 1; min-height: 0; overflow-x: auto; }
+.note { flex: 1 0 24rem; min-width: 0; padding: 1rem; overflow-y: auto; overflow-wrap: anywhere; border-right: 1px solid #ccc; }
+.note-top { display: flex; justify-content: space-between; gap: 1rem; }
+.body p { white-space: pre-wrap; }
+.body pre { overflow: auto; }
+.backlinks { border-top: 1px solid #ccc; margin-top: 2rem; padding-top: 1rem; }
+.welcome, .map { padding: 1rem; }
+.map { flex: 1; min-height: 0; overflow: auto; }
+.map svg { display: block; width: 100%; max-height: 80vh; }
+.map line { stroke: currentColor; }
+.map text { font-size: 12px; }
+@media (max-width: 600px) {
+  .shell { flex-direction: column; }
+  .sidebar { flex: none; max-height: 30vh; border-right: 0; border-bottom: 1px solid #ccc; }
+  .note { flex-basis: 100%; }
+}
+</style>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Notebook index">
+    <a class="brand" href="#" aria-label="Notebook home">nb</a>
+    <nav class="tabs" aria-label="View"><button id="notes-view" aria-pressed="true">Notes</button><button id="map-view" aria-pressed="false">Connections</button><button id="refresh" title="Reload saved notes">Refresh</button></nav>
+    <input class="search" id="search" type="search" aria-label="Search notes" placeholder="Search notes…" autocomplete="off">
+    <p id="status" role="status" hidden></p>
+    <ul class="index" id="index"></ul>
+  </aside>
+  <main>
+    <button id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true">Hide sidebar</button>
+    <div class="stack" id="stack" aria-label="Open notes"></div>
+    <section class="map" id="map" hidden aria-label="Note connections"></section>
+  </main>
+</div>
+<script>
+'use strict';
+let data={name:'',notes:[]}, links=[], opened=[], mapVisible=false, epoch=0, initialized=false;
+const $=id=>document.getElementById(id), notes=new Map(), incoming=new Map(), neighbours=new Map(), scrolls=new Map();
+const title=id=>notes.get(id)?.text?.match(/^#\s+(.+)$/m)?.[1].trim()||id.split('/').pop();
+const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n};
+async function get(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error((await response.text()).trim().slice(0,250)||'Request failed ('+response.status+')');return response.json()}
+function status(message){$('status').textContent=message;$('status').hidden=!message}
+async function refresh(){
+  $('refresh').disabled=true;status('Loading saved notes…');
+  try{
+    const latest=await get('/api/index');data=latest;links=data.links||[];notes.clear();incoming.clear();neighbours.clear();
+    for(const n of data.notes||[])notes.set(n.id,n);
+    for(const {source,target} of links){
+      if(!incoming.has(target))incoming.set(target,new Set());incoming.get(target).add(source);
+      for(const [a,b] of [[source,target],[target,source]]){if(!neighbours.has(a))neighbours.set(a,new Set());neighbours.get(a).add(b)}
+    }
+    document.title=data.name+' · nb';
+    if(!initialized){initialized=true;restore()}else{opened=opened.filter(id=>notes.has(id));history.replaceState(null,'',hashFor(opened));render()}
+    status('');
+  }catch(error){status('Could not load notes. '+error.message+' Try Refresh.')}finally{$('refresh').disabled=false}
+}
+const hashFor=ids=>ids.length?'#'+ids.map(encodeURIComponent).join('&'):'#';
+function noteLink(id,text,from){
+  const a=el('a',text);a.href=hashFor(from==null?[...opened,id]:[...opened.slice(0,from+1),id]);
+  a.addEventListener('click',e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();openNote(id,from)});return a;
+}
+function openNote(id,from){
+  if(!notes.has(id))return;setView(false);
+  const existing=opened.indexOf(id);
+  if(existing<0){opened=from==null?[...opened,id]:[...opened.slice(0,from+1),id];commit()}else render();
+  focusNote(existing<0?opened.length-1:existing);
+}
+function focusNote(index){const panel=$('stack').children[index];if(panel){panel.scrollIntoView({block:'nearest',inline:'start'});panel.focus({preventScroll:true})}}
+function commit(){if(location.hash!==hashFor(opened))history.pushState(null,'',hashFor(opened));render()}
+function restore(){try{opened=[...new Set(location.hash.slice(1).split('&').filter(Boolean).map(decodeURIComponent))].filter(id=>notes.has(id))}catch{opened=[]}render();if(opened.length)focusNote(opened.length-1)}
+function resolve(source,target){
+  if(!target||target.startsWith('/')||/[\r\n\t\[\]]/.test(target))return;
+  const parts=source.split('/');parts.pop();
+  for(const part of target.split('/')){if(!part||part==='.')continue;if(part==='..'){if(!parts.length)return;parts.pop()}else parts.push(part)}
+  const id=parts.join('/');return notes.has(id)?id:undefined;
+}
+function inline(parent,text,source,index){
+  const pattern=/\[\[([^\[\]\r\n]+)\]\]|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*/g;let end=0;
+  for(const m of text.matchAll(pattern)){
+    parent.append(document.createTextNode(text.slice(end,m.index)));
+    const target=m[1]&&resolve(source,m[1]);
+    parent.append(m[2]!=null?el('code',m[2]):m[3]!=null?el('strong',m[3]):m[4]!=null?el('em',m[4]):target?noteLink(target,m[1],index):document.createTextNode(m[0]));end=m.index+m[0].length;
+  }parent.append(document.createTextNode(text.slice(end)));
+}
+function body(note,index){
+  const out=el('div',null,'body'), lines=note.text.replace(/\r\n?/g,'\n').split('\n');let i=0,removedTitle=false;
+  while(i<lines.length){
+    const line=lines[i];if(!line.trim()){i++;continue}
+    if(/^\s*```/.test(line)){const code=[];i++;while(i<lines.length&&!/^\s*```/.test(lines[i]))code.push(lines[i++]);i++;out.append(el('pre',code.join('\n')));continue}
+    const heading=line.match(/^(#{1,6})\s+(.*)$/);
+    if(heading){i++;if(!removedTitle&&heading[1]==='#'&&heading[2].trim()===title(note.id)){removedTitle=true;continue}const h=el('h'+Math.min(6,Math.max(2,heading[1].length)));inline(h,heading[2],note.id,index);out.append(h);continue}
+    if(/^\s*([-*+]\s|\d+\.\s)/.test(line)){
+      const ordered=/^\s*\d+\./.test(line), list=el(ordered?'ol':'ul'), pattern=ordered?/^\s*\d+\.\s+(.*)$/:/^\s*[-*+]\s+(.*)$/;let match;
+      while(i<lines.length&&(match=lines[i].match(pattern))){const li=el('li');inline(li,match[1],note.id,index);list.append(li);i++}out.append(list);continue;
+    }
+    if(/^>\s?/.test(line)){const quote=el('blockquote'),text=[];while(i<lines.length&&/^>\s?/.test(lines[i]))text.push(lines[i++].replace(/^>\s?/,''));inline(quote,text.join('\n'),note.id,index);out.append(quote);continue}
+    const text=[lines[i++]];while(i<lines.length&&lines[i].trim()&&!/^(#{1,6}\s|\s*```|>\s?|\s*[-*+]\s|\s*\d+\.\s)/.test(lines[i]))text.push(lines[i++]);const p=el('p');inline(p,text.join('\n'),note.id,index);out.append(p);
+  }return out;
+}
+function renderIndex(){
+  const query=$('search').value.toLocaleLowerCase().trim(), found=data.notes.filter(n=>!query||(n.id+' '+title(n.id)).toLocaleLowerCase().includes(query));
+  $('index').replaceChildren();
+  for(const n of found){const li=el('li'),a=noteLink(n.id,title(n.id));if(opened.includes(n.id))a.setAttribute('aria-current','true');if(n.id!==title(n.id))a.append(el('small',n.id));li.append(a);$('index').append(li)}
+  if(!found.length)$('index').append(el('li',notes.size?'No notes match your search.':'No notes yet.','quiet'));
+}
+function render(){
+  const version=++epoch;
+  const left=$('stack').scrollLeft;
+  for(const panel of $('stack').children)if(panel.dataset.loaded)scrolls.set(panel.dataset.id,panel.scrollTop);
+  $('stack').replaceChildren();
+  opened.forEach((id,index)=>{
+    const panel=el('article',null,'note');panel.tabIndex=-1;panel.dataset.id=id;panel.setAttribute('aria-label',title(id));
+    const top=el('div',null,'note-top'),close=el('button','×','close');close.setAttribute('aria-label','Close '+title(id));
+    close.onclick=()=>{opened.splice(index,1);commit();if(opened.length)focusNote(Math.min(index,opened.length-1));else $('search').focus()};
+    const heading=el('h1',title(id)),content=el('div','Loading note…','quiet');content.setAttribute('role','status');
+    top.append(el('span',id,'path'),close);panel.append(top,heading,content);
+    const back=el('footer',null,'backlinks'),sources=[...(incoming.get(id)||[])];back.append(el('div',sources.length+' '+(sources.length===1?'backlink':'backlinks'),'eyebrow'));
+    const list=el('ul');for(const source of sources){const li=el('li');li.append(noteLink(source,title(source),index));list.append(li)}back.append(sources.length?list:el('p','No notes link here yet.','quiet'));panel.append(back);$('stack').append(panel);
+    get('/api/note?id='+encodeURIComponent(id)).then(note=>{
+      if(version!==epoch)return;notes.set(id,note);heading.textContent=title(id);panel.setAttribute('aria-label',title(id));content.replaceWith(body(note,index));panel.dataset.loaded='true';panel.scrollTop=scrolls.get(id)||0;renderIndex();if(mapVisible)renderMap();
+    }).catch(error=>{if(version===epoch)content.textContent='Could not load this note. '+error.message+' Try Refresh.'});
+  });
+  if(!opened.length)$('stack').append(el('p',notes.size?'Select a note from the index.':'No notes yet. Add a note and select Refresh.','welcome'));
+  $('stack').scrollLeft=left;renderIndex();if(mapVisible)renderMap();
+}
+function setView(showMap){mapVisible=showMap;$('stack').hidden=showMap;$('map').hidden=!showMap;$('notes-view').setAttribute('aria-pressed',String(!showMap));$('map-view').setAttribute('aria-pressed',String(showMap));if(showMap)renderMap()}
+function renderMap(){
+  const host=$('map'),focus=opened.at(-1)||data.notes[0]?.id,all=data.notes.map(n=>n.id),limit=60;
+  const candidates=all.length>limit?[focus,...(neighbours.get(focus)||[])].filter((id,i,a)=>id&&a.indexOf(id)===i):all;
+  const ids=candidates.slice(0,limit), positions=new Map(), ns='http://www.w3.org/2000/svg';
+  host.replaceChildren(el('h1','Connections'),el('p',all.length>limit?'Around “'+title(focus)+'” · showing '+ids.length+' of '+all.length+' notes. Open another note to explore its connections. The index contains every note.':notes.size+' notes · '+links.length+' links. Select a name to open a note.','quiet'));
+  if(!ids.length){host.append(el('p','Connections will appear as you link your notes.','quiet'));return}
+  const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 900 900');svg.setAttribute('aria-label','Connections between notes; all notes are also available in the index');
+  const add=(tag,attrs,parent=svg)=>{const node=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);parent.append(node);return node};
+  ids.forEach((id,i)=>{const angle=i/ids.length*Math.PI*2-Math.PI/2;positions.set(id,ids.length===1?[450,450]:[450+310*Math.cos(angle),450+310*Math.sin(angle)])});
+  const drawn=new Set();for(const {source,target} of links){if(!positions.has(source)||!positions.has(target))continue;const key=JSON.stringify([source,target].sort());if(drawn.has(key))continue;drawn.add(key);const [x1,y1]=positions.get(source),[x2,y2]=positions.get(target);add('line',{x1,y1,x2,y2})}
+  for(const id of ids){const [x,y]=positions.get(id),a=add('a',{href:hashFor([...opened,id]),'aria-label':'Open '+title(id)});a.addEventListener('click',e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();openNote(id)});add('title',{},a).textContent=id;add('circle',{cx:x,cy:y,r:id===focus?8:6},a);const left=x<440;add('text',{x:x+(left?-13:13),y:y+4,'text-anchor':left?'end':'start'},a).textContent=title(id).length>21?title(id).slice(0,20)+'…':title(id)}host.append(svg);
+}
+$('search').addEventListener('input',renderIndex);$('notes-view').onclick=()=>setView(false);$('map-view').onclick=()=>setView(true);
+$('sidebar-toggle').onclick=()=>{const hidden=$('sidebar').hidden=!$('sidebar').hidden;$('sidebar-toggle').setAttribute('aria-expanded',String(!hidden));$('sidebar-toggle').textContent=hidden?'Show sidebar':'Hide sidebar'};
+document.querySelector('.brand').onclick=e=>{e.preventDefault();opened=[];setView(false);commit()};
+$('refresh').onclick=refresh;window.addEventListener('hashchange',()=>{if(initialized)restore()});refresh();
+</script>
+</html>
