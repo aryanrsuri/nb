@@ -20,6 +20,7 @@ Use -root DIR to start discovery elsewhere.
   init [DIR]             Initialize this directory (or DIR) as a notebook
   root                   Print the discovered notebook root
   index                  Map all existing notes and links (JSON)
+  serve [PORT]           Browse notes locally at http://127.0.0.1:8080
   list [QUERY]           Find notes by case-insensitive path substring
   links [NOTE]           Show all links, or NOTE's outgoing links
   backlinks NOTE         Show links pointing to NOTE
@@ -55,7 +56,7 @@ func run(args []string, out, stderr io.Writer) error {
 	minArgs, maxArgs := 0, 0
 	switch command {
 	case "index", "root":
-	case "init", "list", "links":
+	case "init", "list", "links", "serve":
 		maxArgs = 1
 	case "backlinks", "open":
 		minArgs, maxArgs = 1, 1
@@ -90,6 +91,13 @@ func run(args []string, out, stderr io.Writer) error {
 	}
 	if command == "root" {
 		return printResult(out, root, *asJSON)
+	}
+	if command == "serve" {
+		port := "8080"
+		if len(args) == 1 {
+			port = args[0]
+		}
+		return serveNotebook(root, port, out)
 	}
 	n, err := scan(root, command == "index" || command == "links" || command == "backlinks")
 	if err != nil {
