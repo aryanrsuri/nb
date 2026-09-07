@@ -13,10 +13,9 @@ Implement a small application and integration that allows me to build a note-tak
 
 Specification
 
-There is a root folder F, which can contain markdown files M and other folders F creating a file tree `F = {M,F}`
-such that a folder F'' in a folder F' in the root folder F containing markdown file M'' is co-located as F'/F''/M''
-in reference to F. This is called a path, and note the root folder is omitted in this syntax, and the descriptors 
-are the labels of these things without the file extension (i.e. note-1 rather than note-1.md).
+There is a folder F, which can contain markdown files M and other folders F creating a file tree `F = {M,F}`
+such that a folder F'' in a folder F' in the folder F containing markdown file M'' is co-located as F'/F''/M''
+in reference to F.  This is the `path`.
 
 When writing text in M, a user can specify a _link_ to another file N by using its path in reference to M.
 LINK == [[path]]. Using the earlier example, a file at path M, can link to M->M'' as [[F'/F''/M'']] and M'' can 
