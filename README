@@ -1,7 +1,5 @@
 nb - nota bene 
 
-Build, installation, notebook initialization, and Neovim usage: see USAGE.md.
-
 Goal 
 
 Implement a small application and integration that allows me to build a note-taking system that is:
@@ -36,6 +34,29 @@ References
 * zk, a similar but not same implementation of some of the specification.
 
 Usage 
+
+  Build 
+
+You must have go>1.22 installed. Then you can build `nb` and add it to your path. 
+`nb init` will generate a `.nb` with a config (containing only nvim as editor default).
+
+  Neovim
+
+To set up in neovim, please add the nb.lua to your config (or prepend to rtp path) then 
+`require('nb').setup()`. The basic commands (assuming telescope) are as follows:
+
+  | Keys | Command | Action |
+  |---|---|---|
+  | `gf` | `:NbFollow` | Follow the link under the cursor |
+  | `<leader>nf` | `:NbFind` | Find and open a note |
+  | `<leader>nl` | `:NbLinks` | Follow an outgoing link |
+  | `<leader>nb` | `:NbBacklinks` | Jump to a backlink's source occurrence |
+  | `<leader>na` | `:NbAllLinks` | Jump to any link's source occurrence |
+  | `<leader>ni` | `:NbInsert` | Insert a relative link to a selected note |
+
+  CLI
+
+The CLI offers a simple set of tools to work with.
 
 ```
 nb list theory                    # Find notes by path substring
