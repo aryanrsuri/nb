@@ -1,8 +1,6 @@
-nb - nota bene 
+nb
 
-Goal 
-
-Implement a small application and integration that allows me to build a note-taking system that is:
+nb (_nota bene_) is a small application and integration that allows me to build a note-taking system that is:
   * atomic
   * concept-based
   * highly linkable
