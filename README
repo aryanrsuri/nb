@@ -9,7 +9,7 @@ nb (_nota bene_) is a small application and integration that allows me to build 
 
 Specification
 
-There is a folder F, which can contain markdown files M and other folders F creating a file tree `F = {M,F}`
+There is a folder F, which can contain files M and other folders F creating a file tree `F = {M,F}`
 such that a folder F'' in a folder F' in the folder F containing markdown file M'' is co-located as F'/F''/M''
 in reference to F.  This is the `path`.
 
@@ -19,13 +19,13 @@ back-link M''->M as [[../../M]] where `..` implies walking backwards up a folder
 
 Requirements
 
-The application operates with a CLI and nvim interplay, that can index and map all links within F, and provide a trivial way to 
+The application operates with a cli and nvim interplay, that can index and map all links within F, and provide a trivial way to 
 find and acess the linked note, view all links, and create a new link.
 
 References
 
 * https://notes.andymatuschak.org/, what gave me this idea.
-* [Zettelkasten](https://en.wikipedia.org/wiki/Zettelkasten), the original idea of directed structure in note-taking.
+* [Zettelkasten](https://en.wikipedia.org/wiki/Zettelkasten), the original idea of slip-box.
 * [zk](https://github.com/zk-org/zk), a similar implementation.
 
 Usage 
@@ -33,7 +33,6 @@ Usage
   Build 
 
 Build with go version >1.27 and add to your path. 
-`nb init` will generate a `.nb` with a config (containing only nvim as editor default).
 
   Neovim
 
@@ -54,6 +53,7 @@ To set up in neovim, please add the nb.lua to your config (or prepend to rtp pat
 The CLI offers a simple set of tools to work with.
 
 ```
+nb init                           # Build an `.nb` file as root
 nb list theory                    # Find notes by path substring
 nb index                          # Whole graph as JSON
 nb links                          # All active links
