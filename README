@@ -19,17 +19,14 @@ back-link M''->M as [[../../M]] where `..` implies walking backwards up a folder
 
 Requirements
 
-The application is starting with a CLI, that can index and map all links within F, and provide a trivial way to 
+The application operates with a CLI and nvim interplay, that can index and map all links within F, and provide a trivial way to 
 find and acess the linked note, view all links, and create a new link.
-
-The application should work intimitaley with neovim, the editor of chose, with specific keymaps related to the 
-requirements, as well as usage of telescope/fzf, already installed (if not).
 
 References
 
 * https://notes.andymatuschak.org/, what gave me this idea.
-* Zettelkasten, the original idea of "webbed" or directed stricture of note-taking.
-* zk, a similar but not same implementation of some of the specification.
+* [Zettelkasten](https://en.wikipedia.org/wiki/Zettelkasten), the original idea of "webbed" or directed stricture of note-taking.
+* [zk](https://github.com/zk-org/zk), a similar but not same implementation of some of the specification.
 
 Usage 
 
@@ -66,3 +63,7 @@ nb resolve concepts/note ../other # Absolute target of a source-relative link
 nb open concepts/note             # Open an existing note
 nb link concepts/note other       # Print [[../other]] for insertion
 ```
+
+Footnotes 
+
+I don't actually _like_ the markdown specification, and much rather plain text (.txt; .text; or nil)
